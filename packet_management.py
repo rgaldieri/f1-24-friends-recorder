@@ -1,4 +1,5 @@
 from Session import Session
+from DataMemory import DataMemory
 from Player import Player
 from dictionnaries import *
 import json
@@ -10,21 +11,41 @@ from tkinter import Message, Checkbutton, Button
 from Custom_Frame import Custom_Frame
 import traceback
 
-LISTE_JOUEURS: list[Player] = []
+BestTimeInMS = -1
+LOCAL_PLAYER_ID = -1
 session: Session = Session()
+TT_data : DataMemory = DataMemory()
+
+PLAYERS_LIST: list[Player] = []
 created_map = False
 WIDTH_POINTS = 6
 LISTE_FRAMES = []
-liste_button: list = ["Main Menu", "Damage", "Temperatures", "Laps", "Map", "ERS & Fuel", "Weather Forecast",
-                              "Packet Reception"]
+
+
+def time_trial(packet, header):
+    global BestTimeInMS
+    if(BestTimeInMS == -1):
+        print("Time Initialization")
+        #Initializing data
+        LOCAL_PLAYER_ID = header.m_player_car_index
+        session_best = packet.m_playerSessionBestDataSet # Player session best data set
+        if(packet.m_personalBestDataSet.m_lap_time_in_ms > 0):
+            BestTimeInMS = packet.m_personalBestDataSet.m_lap_time_in_ms
+            print("Best time is " + str(BestTimeInMS))
+        else:
+            print("No Best Time Recorded")
+            BestTimeInMS = 999999999
+    if(packet.m_personalBestDataSet.m_lap_time_in_ms < BestTimeInMS and packet.m_personalBestDataSet.m_lap_time_in_ms > 0):
+        BestTimeInMS = packet.m_playerSessionBestDataSet.m_lap_time_in_ms
+        print("New Best:" + str(BestTimeInMS))
 
 def update_motion(packet, map_canvas, *args):  # Packet 0
     for i in range(session.nb_players):
-        if LISTE_JOUEURS[i].worldPositionX != 0:
-            LISTE_JOUEURS[i].Xmove = packet.m_car_motion_data[i].m_world_position_x - LISTE_JOUEURS[i].worldPositionX
-            LISTE_JOUEURS[i].Zmove = packet.m_car_motion_data[i].m_world_position_z - LISTE_JOUEURS[i].worldPositionZ
-        LISTE_JOUEURS[i].worldPositionX = packet.m_car_motion_data[i].m_world_position_x
-        LISTE_JOUEURS[i].worldPositionZ = packet.m_car_motion_data[i].m_world_position_z
+        if PLAYERS_LIST[i].worldPositionX != 0:
+            PLAYERS_LIST[i].Xmove = packet.m_car_motion_data[i].m_world_position_x - PLAYERS_LIST[i].worldPositionX
+            PLAYERS_LIST[i].Zmove = packet.m_car_motion_data[i].m_world_position_z - PLAYERS_LIST[i].worldPositionZ
+        PLAYERS_LIST[i].worldPositionX = packet.m_car_motion_data[i].m_world_position_x
+        PLAYERS_LIST[i].worldPositionZ = packet.m_car_motion_data[i].m_world_position_z
     try:
         update_map(map_canvas)
     except Exception as e:
@@ -59,38 +80,84 @@ def update_session(packet, top_frame1, top_frame2, screen, map_canvas):  # Packe
     update_title(top_frame1, top_frame2, screen)
     update_frame6()
 
-def update_lap_data(packet):  # Packet 2
+def update_lap_data(packet, header):  # Packet 2
     mega_array = packet.m_lap_data
     for index in range(22):
         element = mega_array[index]
-        joueur = LISTE_JOUEURS[index]
-        joueur.position = element.m_car_position
-        joueur.lastLapTime = round(element.m_last_lap_time_in_ms, 3)
-        joueur.pit = element.m_pit_status
-        joueur.driverStatus = element.m_driver_status
-        joueur.penalties = element.m_penalties
-        joueur.warnings = element.m_corner_cutting_warnings
-        joueur.speed_trap = round(element.m_speedTrapFastestSpeed, 2)
-        joueur.currentLapTime = element.m_current_lap_time_in_ms
-        joueur.delta_to_leader=element.m_deltaToCarInFrontMSPart
-        joueur.currentLapInvalid = element.m_current_lap_invalid
+        player = PLAYERS_LIST[index]
+        player.position = element.m_car_position
+        player.lastLapTime = round(element.m_last_lap_time_in_ms, 3)
+        player.pit = element.m_pit_status
+        player.driverStatus = element.m_driver_status
+        player.penalties = element.m_penalties
+        player.warnings = element.m_corner_cutting_warnings
+        player.speed_trap = round(element.m_speedTrapFastestSpeed, 2)
+        player.currentLapTime = element.m_current_lap_time_in_ms
+        player.delta_to_leader=element.m_deltaToCarInFrontMSPart
+        player.currentLapInvalid = element.m_current_lap_invalid
 
-        if element.m_sector1_time_in_ms == 0 and joueur.currentSectors[0] != 0:  # On attaque un nouveau tour
-            joueur.lastLapSectors = joueur.currentSectors[:]
-            joueur.lastLapSectors[2] = joueur.lastLapTime / 1_000 - joueur.lastLapSectors[0] - joueur.lastLapSectors[1]
+        if element.m_sector1_time_in_ms == 0 and player.currentSectors[0] != 0:  # Starting a new lap
+            player.lastLapSectors = player.currentSectors[:]
+            player.lastLapSectors[2] = player.lastLapTime / 1_000 - player.lastLapSectors[0] - player.lastLapSectors[1]
 
-        joueur.currentSectors = [element.m_sector1_time_in_ms / 1000, element.m_sector2_time_in_ms / 1000, 0]
-        if joueur.bestLapTime > element.m_last_lap_time_in_ms != 0 or joueur.bestLapTime == 0:
-            joueur.bestLapTime = element.m_last_lap_time_in_ms
-            joueur.bestLapSectors = joueur.lastLapSectors[:]
-        if joueur.bestLapTime < session.bestLapTime and element.m_last_lap_time_in_ms != 0 or joueur.bestLapTime == 0:
-            session.bestLapTime = joueur.bestLapTime
+        player.currentSectors = [element.m_sector1_time_in_ms / 1000, element.m_sector2_time_in_ms / 1000, 0]
+        if player.bestLapTime > element.m_last_lap_time_in_ms != 0 or player.bestLapTime == 0:
+            player.bestLapTime = element.m_last_lap_time_in_ms
+            player.bestLapSectors = player.lastLapSectors[:]
+        if player.bestLapTime < session.bestLapTime and element.m_last_lap_time_in_ms != 0 or player.bestLapTime == 0:
+            session.bestLapTime = player.bestLapTime
             session.idxBestLapTime = index
         if element.m_car_position == 1:
             session.currentLap = mega_array[index].m_current_lap_num
             session.tour_precedent = session.currentLap - 1
 
-def warnings(packet):  # Packet 3
+def n_update_lap_data(packet, header):
+    # last_lap_time = packet.m_lap_data[header.m_player_car_index]
+    # if last_lap_time < LastLapTimeInMS:
+    #     LastLapTimeInMS = last_lap_time
+    #     print("Time Updated")
+    pass
+    # LOCAL_PLAYER_ID = header.m_player_car_index
+    # lapData = packet.m_lap_data[LOCAL_PLAYER_ID]
+
+
+    # session_best = packet.m_playerSessionBestDataSet # Player session best data set
+    # alltime_best = packet.m_personalBestDataSet
+    # if(not tt_data.initialized):
+    #     TT_data.initialize(alltime_best)
+    # if packet.m_lap_data[LOCAL_PLAYER_ID].m_sector1_time_in_ms == 0:
+    #     print("New Lap")
+    # mega_array = packet.m_lap_data
+    # for index in range(22):
+    #     element = mega_array[index]
+    #     player = PLAYERS_LIST[index]
+    #     player.position = element.m_car_position
+    #     player.lastLapTime = round(element.m_last_lap_time_in_ms, 3)
+    #     player.pit = element.m_pit_status
+    #     player.driverStatus = element.m_driver_status
+    #     player.penalties = element.m_penalties
+    #     player.warnings = element.m_corner_cutting_warnings
+    #     player.speed_trap = round(element.m_speedTrapFastestSpeed, 2)
+    #     player.currentLapTime = element.m_current_lap_time_in_ms
+    #     player.delta_to_leader=element.m_deltaToCarInFrontMSPart
+    #     player.currentLapInvalid = element.m_current_lap_invalid
+
+    #     if element.m_sector1_time_in_ms == 0 and player.currentSectors[0] != 0:  # New Lap?
+    #         player.lastLapSectors = player.currentSectors[:]
+    #         player.lastLapSectors[2] = player.lastLapTime / 1_000 - player.lastLapSectors[0] - player.lastLapSectors[1]
+
+    #     player.currentSectors = [element.m_sector1_time_in_ms / 1000, element.m_sector2_time_in_ms / 1000, 0]
+    #     if player.bestLapTime > element.m_last_lap_time_in_ms != 0 or player.bestLapTime == 0:
+    #         player.bestLapTime = element.m_last_lap_time_in_ms
+    #         player.bestLapSectors = player.lastLapSectors[:]
+    #     if player.bestLapTime < session.bestLapTime and element.m_last_lap_time_in_ms != 0 or player.bestLapTime == 0:
+    #         session.bestLapTime = player.bestLapTime
+    #         session.idxBestLapTime = index
+    #     if element.m_car_position == 1:
+    #         session.currentLap = mega_array[index].m_current_lap_num
+    #         session.tour_precedent = session.currentLap - 1
+
+def events(packet, header):  # Packet 3
     if packet.m_event_string_code[3] == 71 and packet.m_event_details.m_start_lights.m_num_lights >= 2: # Starts lights : STLG
         session.formationLapDone = True
         print(f"{packet.m_event_details.m_start_lights.m_num_lights} red lights ")
@@ -98,79 +165,79 @@ def warnings(packet):  # Packet 3
         print("Lights out !")
         session.formationLapDone = False
         session.startTime = time.time()
-        for joueur in LISTE_JOUEURS:
-            joueur.S200_reached = False
-            joueur.warnings = 0
-            joueur.lastLapSectors = [0] * 3
-            joueur.bestLapSectors = [0] * 3
-            joueur.lastLapTime: float = 0
-            joueur.currentSectors = [0] * 3
-            joueur.bestLapTime = 0
+        for player in PLAYERS_LIST:
+            player.S200_reached = False
+            player.warnings = 0
+            player.lastLapSectors = [0] * 3
+            player.bestLapSectors = [0] * 3
+            player.lastLapTime: float = 0
+            player.currentSectors = [0] * 3
+            player.bestLapTime = 0
     elif packet.m_event_string_code[2] == 82:
-        LISTE_JOUEURS[packet.m_event_details.m_vehicle_idx].hasRetired = True
+        PLAYERS_LIST[packet.m_event_details.m_vehicle_idx].hasRetired = True
 
-def update_participants(packet):  # Packet 4
+def update_participants(packet, header):  # Packet 4
     for index in range(22):
         element = packet.m_participants[index]
-        joueur = LISTE_JOUEURS[index]
-        joueur.numero = element.m_race_number
-        joueur.teamId = element.m_team_id
-        joueur.aiControlled = element.m_ai_controlled
-        joueur.yourTelemetry = element.m_your_telemetry
+        player = PLAYERS_LIST[index]
+        player.numero = element.m_race_number
+        player.teamId = element.m_team_id
+        player.aiControlled = element.m_ai_controlled
+        player.yourTelemetry = element.m_your_telemetry
         try:
-            joueur.name = element.m_name.decode("utf-8")
+            player.name = element.m_name.decode("utf-8")
         except:
-            joueur.name = element.m_name
+            player.name = element.m_name
         session.nb_players = packet.m_num_active_cars
-        if joueur.name in ['Player', 'Joueur']:
-            joueur.name = teams_name_dictionary[joueur.teamId] + "#" + str(joueur.numero)
-    update_frame(LISTE_FRAMES, LISTE_JOUEURS, session)
+        if player.name in ['Player', 'Joueur']:
+            player.name = teams_name_dictionary[player.teamId] + "#" + str(player.numero)
+    update_frame(LISTE_FRAMES, PLAYERS_LIST, session)
 
-def update_car_setups(packet): # Packet 5
+def update_car_setups(packet, header): # Packet 5
     array = packet.m_car_setups
     for index in range(22):
-        LISTE_JOUEURS[index].setup_array = array[index]
+        PLAYERS_LIST[index].setup_array = array[index]
 
-def update_car_telemetry(packet):  # Packet 6
+def update_car_telemetry(packet, header):  # Packet 6
     for index in range(22):
         element = packet.m_car_telemetry_data[index]
-        joueur = LISTE_JOUEURS[index]
-        joueur.drs = element.m_drs
-        joueur.tyres_temp_inner = element.m_tyres_inner_temperature
-        joueur.tyres_temp_surface = element.m_tyres_surface_temperature
-        joueur.speed = element.m_speed
-        if joueur.speed >= 200 and not joueur.S200_reached:
-            print(f"{joueur.position} {joueur.name}  = {time.time() - session.startTime}")
-            joueur.S200_reached = True
-    update_frame(LISTE_FRAMES, LISTE_JOUEURS, session)
+        player = PLAYERS_LIST[index]
+        player.drs = element.m_drs
+        player.tyres_temp_inner = element.m_tyres_inner_temperature
+        player.tyres_temp_surface = element.m_tyres_surface_temperature
+        player.speed = element.m_speed
+        if player.speed >= 200 and not player.S200_reached:
+            print(f"{player.position} {player.name}  = {time.time() - session.startTime}")
+            player.S200_reached = True
+    update_frame(LISTE_FRAMES, PLAYERS_LIST, session)
 
-def update_car_status(packet):  # Packet 7
+def update_car_status(packet, header):  # Packet 7
     for index in range(22):
         element = packet.m_car_status_data[index]
-        joueur = LISTE_JOUEURS[index]
-        joueur.fuelMix = element.m_fuel_mix
-        joueur.fuelRemainingLaps = element.m_fuel_remaining_laps
-        joueur.tyresAgeLaps = element.m_tyres_age_laps
-        if joueur.tyres != element.m_visual_tyre_compound:
-            joueur.tyres = element.m_visual_tyre_compound
-        joueur.ERS_mode = element.m_ers_deploy_mode
-        joueur.ERS_pourcentage = round(element.m_ers_store_energy / 40_000)
-    update_frame(LISTE_FRAMES, LISTE_JOUEURS, session)
+        player = PLAYERS_LIST[index]
+        player.fuelMix = element.m_fuel_mix
+        player.fuelRemainingLaps = element.m_fuel_remaining_laps
+        player.tyresAgeLaps = element.m_tyres_age_laps
+        if player.tyres != element.m_visual_tyre_compound:
+            player.tyres = element.m_visual_tyre_compound
+        player.ERS_mode = element.m_ers_deploy_mode
+        player.ERS_pourcentage = round(element.m_ers_store_energy / 40_000)
+    update_frame(LISTE_FRAMES, PLAYERS_LIST, session)
 
-def update_car_damage(packet):  # Packet 10
+def update_car_damage(packet, header):  # Packet 10
     for index in range(22):
         element = packet.m_car_damage_data[index]
-        joueur = LISTE_JOUEURS[index]
-        joueur.tyre_wear = '[' + ', '.join('%.2f'%truc for truc in element.m_tyres_wear) + ']'
-        joueur.FrontLeftWingDamage = element.m_front_left_wing_damage
-        joueur.FrontRightWingDamage = element.m_front_right_wing_damage
-        joueur.rearWingDamage = element.m_rear_wing_damage
-        joueur.floorDamage = element.m_floor_damage
-        joueur.diffuserDamage = element.m_diffuser_damage
-        joueur.sidepodDamage = element.m_sidepod_damage
-    update_frame(LISTE_FRAMES, LISTE_JOUEURS, session)
+        player = PLAYERS_LIST[index]
+        player.tyre_wear = '[' + ', '.join('%.2f'%truc for truc in element.m_tyres_wear) + ']'
+        player.FrontLeftWingDamage = element.m_front_left_wing_damage
+        player.FrontRightWingDamage = element.m_front_right_wing_damage
+        player.rearWingDamage = element.m_rear_wing_damage
+        player.floorDamage = element.m_floor_damage
+        player.diffuserDamage = element.m_diffuser_damage
+        player.sidepodDamage = element.m_sidepod_damage
+    update_frame(LISTE_FRAMES, PLAYERS_LIST, session)
 
-def nothing(packet):# Packet 8, 9, 11, 12, 13
+def nothing(packet, header):# Packet 8, 9, 11, 12, 13
     pass
 
 def create_map(map_canvas):
@@ -195,48 +262,48 @@ def create_map(map_canvas):
                     cmi +=1
     session.segments.insert(0, map_canvas.create_line(L1+L0, width=3))
     for i in range(20):
-        joueur = LISTE_JOUEURS[i]
+        player = PLAYERS_LIST[i]
         if session.Seance == 18 and i!=0:
-            joueur.oval = map_canvas.create_oval(-1000 / d + x_const - WIDTH_POINTS,
+            player.oval = map_canvas.create_oval(-1000 / d + x_const - WIDTH_POINTS,
                                                 -1000 / d + z_const - WIDTH_POINTS,
                                                 -1000 / d + x_const + WIDTH_POINTS,
                                                 -1000 / d + z_const + WIDTH_POINTS, outline="")
         else:
-            joueur.oval = map_canvas.create_oval(joueur.worldPositionX / d + x_const - WIDTH_POINTS,
-                                                joueur.worldPositionZ / d + z_const - WIDTH_POINTS,
-                                                joueur.worldPositionX / d + x_const + WIDTH_POINTS,
-                                                joueur.worldPositionZ / d + z_const + WIDTH_POINTS, outline="")
+            player.oval = map_canvas.create_oval(player.worldPositionX / d + x_const - WIDTH_POINTS,
+                                                player.worldPositionZ / d + z_const - WIDTH_POINTS,
+                                                player.worldPositionX / d + x_const + WIDTH_POINTS,
+                                                player.worldPositionZ / d + z_const + WIDTH_POINTS, outline="")
             
-            joueur.etiquette = map_canvas.create_text(joueur.worldPositionX / d + x_const + 25,
-                                                    joueur.worldPositionZ / d + z_const - 25,
-                                                    text=joueur.name, font=("Cousine", 13))
-            map_canvas.moveto(joueur.oval, joueur.worldPositionX / d + x_const - WIDTH_POINTS,
-                                joueur.worldPositionZ / d + z_const - WIDTH_POINTS)
+            player.etiquette = map_canvas.create_text(player.worldPositionX / d + x_const + 25,
+                                                    player.worldPositionZ / d + z_const - 25,
+                                                    text=player.name, font=("Cousine", 13))
+            map_canvas.moveto(player.oval, player.worldPositionX / d + x_const - WIDTH_POINTS,
+                                player.worldPositionZ / d + z_const - WIDTH_POINTS)
 
 def delete_map(map_canvas):
     for element in session.segments:
         map_canvas.delete(element)
     session.segments = []
-    for joueur in LISTE_JOUEURS:
-        map_canvas.delete(joueur.oval)
-        map_canvas.delete(joueur.etiquette)
-        joueur.oval = None
+    for player in PLAYERS_LIST:
+        map_canvas.delete(player.oval)
+        map_canvas.delete(player.etiquette)
+        player.oval = None
 
 def update_map(map_canvas):
     _, d, x, z = track_dictionary[session.track]
-    for joueur in LISTE_JOUEURS:
-        if joueur.position != 0:
-            map_canvas.move(joueur.oval, joueur.Xmove / d, joueur.Zmove / d)
-            map_canvas.itemconfig(joueur.oval, fill=teams_color_dictionary[joueur.teamId])
-            map_canvas.move(joueur.etiquette, joueur.Xmove / d, joueur.Zmove / d)
-            map_canvas.itemconfig(joueur.etiquette, fill=teams_color_dictionary[joueur.teamId], text=joueur.name)
+    for player in PLAYERS_LIST:
+        if player.position != 0:
+            map_canvas.move(player.oval, player.Xmove / d, player.Zmove / d)
+            map_canvas.itemconfig(player.oval, fill=teams_color_dictionary[player.teamId])
+            map_canvas.move(player.etiquette, player.Xmove / d, player.Zmove / d)
+            map_canvas.itemconfig(player.etiquette, fill=teams_color_dictionary[player.teamId], text=player.name)
     for i in range(len(session.segments)):
         map_canvas.itemconfig(session.segments[i], fill=color_flag_dict[session.marshalZones[i].m_zone_flag])
     session.anyYellow = any(item.m_zone_flag==3 for item in session.marshalZones)
         
 def init_20_players():
     for _ in range(22):
-        LISTE_JOUEURS.append(Player())
+        PLAYERS_LIST.append(Player())
 
 def UDP_Redirect(dictionnary_settings, listener, PORT):
     win = Toplevel()
@@ -320,20 +387,10 @@ def update_title(top_label1, top_label2, screen):
     else:
         top_label2.config(background=screen.cget("background"))
 
-def update_frame(LISTE_FRAMES : list[Custom_Frame], LISTE_JOUEURS, session):
+def update_frame(LISTE_FRAMES : list[Custom_Frame], PLAYERS_LIST, session):
     for i in range(5):
-        LISTE_FRAMES[i].update(LISTE_JOUEURS, session)
+        LISTE_FRAMES[i].update(PLAYERS_LIST, session)
 
 def update_frame6():
     LISTE_FRAMES[6].update(session)
     
-
-
-
-
-
-
-
-
-
-

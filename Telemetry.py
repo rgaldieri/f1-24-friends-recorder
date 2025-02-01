@@ -10,14 +10,13 @@ from dictionnaries import *
 from parser2024 import Listener
 from Custom_Frame import Players_Frame, Packet_Reception_Frame, Weather_Forecast_Frame
 
-
 def init_window():
     global map_canvas
     screen.columnconfigure(0, weight=1)
     screen.rowconfigure(0, pad=75)
     screen.rowconfigure(1, weight=1)
 
-    screen.title("Telemetry Application")
+    screen.title("Time Trial Data Sender")
 
     top_frame.grid(row=0, column=0, columnspan=3, sticky="nsew")
     main_frame.grid(row=1, column=0, sticky="nsew")
@@ -37,10 +36,9 @@ def init_window():
     map_canvas = Canvas(map)
     map_canvas.pack(expand=True, fill='both')
 
-    LISTE_FRAMES.append(Weather_Forecast_Frame(notebook, "Weather Forecast", 6, 20))
-    LISTE_FRAMES.append(Packet_Reception_Frame(notebook, "Packet Reception", 7))
+    LISTE_FRAMES.append(Packet_Reception_Frame(notebook, "Packet Reception", 6))
 
-    for i in range(8):
+    for i in range(len(LISTE_FRAMES)):
         if i != 5:
             notebook.add(LISTE_FRAMES[i], text=LISTE_FRAMES[i].name)
         else:
@@ -53,14 +51,6 @@ def init_window():
     screen.geometry("1480x800")
     screen.protocol("WM_DELETE_WINDOW", close_window)
 
-    menubar = Menu(screen)
-    filemenu = Menu(menubar, tearoff=0)
-    filemenu.add_command(label="PORT Selection", command=lambda : port_selection(dictionnary_settings, listener, PORT))
-    filemenu.add_command(label="UDP Redirect", command=lambda : UDP_Redirect(dictionnary_settings, listener, PORT))
-    menubar.add_cascade(label="Settings", menu=filemenu)
-    screen.config(menu=menubar)
-
-
 def close_window():
     global running
     running = False
@@ -68,7 +58,6 @@ def close_window():
 indice 7,27,28,29
 21 = multiple warnings
 '''
-
 
 packet_received = [0]*15
 last_update = time.time()
@@ -96,22 +85,29 @@ listener = Listener(port=PORT[0],
                     redirect_port=int(dictionnary_settings["redirect_port"]))
 
 function_hashmap = { #PacketId : (fonction, arguments)
-    0: (update_motion, (map_canvas, None)),
-    1: (update_session, (top_label1, top_label2, screen, map_canvas)),
-    2: (update_lap_data, ()),
-    3: (warnings, ()),
-    4: (update_participants, ()),
-    5: (update_car_setups, ()),
-    6: (update_car_telemetry, ()),
-    7: (update_car_status, ()),
-    8: (nothing, ()),
-    9: (delete_map, ()),
-    10: (update_car_damage, ()),
-    11: (nothing, ()),
-    12: (nothing, ()),
-    13: (nothing, ()),
-    14: (nothing, ())
-
+    # 0: (update_motion, (map_canvas, None)), # Motion
+    # 1: (update_session, (top_label1, top_label2, screen, map_canvas)), # Session
+    # 2: (update_lap_data, ()), # Lap Data
+    # 4: (update_participants, ()), #  Participants
+    # 5: (update_car_setups, ()), # Setups
+    # 6: (update_car_telemetry, ()), # Telemetry
+    # 7: (update_car_status, ()), # Car Status
+    # 10: (update_car_damage, ()), # Car Damage
+    0: (nothing, ()), # Motion
+    1: (nothing, ()), # Session
+    2: (n_update_lap_data, ()), # Lap Data
+    3: (nothing, ()), # Event
+    4: (nothing, ()), #  Participants
+    5: (nothing, ()), # Setups
+    6: (nothing, ()), # Telemetry
+    7: (nothing, ()), # Car Status
+    8: (nothing, ()), # Final Classification 
+    9: (nothing, ()), # Lobby Info
+    10: (nothing, ()), # Car Damage
+    11: (nothing, ()), # Session History
+    12: (nothing, ()), # Tyre Set
+    13: (nothing, ()), # Motion Ex
+    14: (time_trial, ()) # Time Trial Data
 }
 
 while running:
@@ -120,15 +116,14 @@ while running:
         header, packet = a
         packet_received[header.m_packet_id]+=1
         func, args = function_hashmap[header.m_packet_id]
-        func(packet, *args)
+        func(packet, header, *args)
     if time.time() > last_update+1:
         last_update = time.time()
-        LISTE_FRAMES[7].update(packet_received) #Packet Received tab
+        LISTE_FRAMES[len(LISTE_FRAMES)-1].update(packet_received) #Packet Received tab
         session.packet_received = packet_received[:]
         packet_received = [0]*15
     screen.update()
     screen.update_idletasks()
     
-
 listener.socket.close()
 quit()

@@ -74,7 +74,7 @@ class Session:
         self.track = track_id
 
     def get_track_by_id(self, number):
-        match status:
+        match number:
             case 0:
                 return "Melbourne"
             case 1:
@@ -144,7 +144,7 @@ class Session:
 
     def check_track_change(self, packet):
         if(self.track is not packet.m_track_id):
-            print("Track " + get_track_by_id(packet.m_track_id) + " Initialized with ID " + str(packet.m_track_id))
+            print("Track " + self.get_track_by_id(packet.m_track_id) + " Initialized with ID " + str(packet.m_track_id))
             self.track = packet.m_track_id
             return True
         return False

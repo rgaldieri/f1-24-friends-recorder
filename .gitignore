@@ -7,3 +7,7 @@ utils/calculateur.py
 pitstoploss.png
 build/*
 dist/*
+*.rar
+/dist_3/settings.txt
+/dist_3/Telemetry.exe
+*.spec

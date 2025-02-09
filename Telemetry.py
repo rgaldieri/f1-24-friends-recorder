@@ -53,6 +53,7 @@ function_hashmap = { #PacketId : (fonction, arguments)
     14: (n_time_trial, ()) # Time Trial Data
 }
 
+print("Server listening")
 while running:
     a = listener.get()
     if a is not None:

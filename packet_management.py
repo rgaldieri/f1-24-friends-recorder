@@ -22,51 +22,56 @@ def n_update_session(packet, header, *args):
         TT_data.reset()
 
 def n_time_trial(packet, header):
-    if(not TT_data.initialized):
+    #Checking previous existing laps
+    if((not TT_data.bestTimeInitialized) and TT_data.playerInitialized and session.track != -1):
         #Initializing data
-        TT_data.playerIndex = header.m_player_car_index
         if(packet.m_personalBestDataSet.m_lap_time_in_ms > 0):
             TT_data.bestLapTime = packet.m_personalBestDataSet.m_lap_time_in_ms
             print("Previous recorded best time is " + str(TT_data.bestLapTime))
             TT_data.setBestTimeStruct(packet.m_personalBestDataSet)
+            update_best_time_if_faster(
+                    TT_data.playerName, 
+                    session.track, 
+                    packet.m_personalBestDataSet.m_lap_time_in_ms, 
+                    packet.m_personalBestDataSet.m_sector1_time_in_ms, 
+                    packet.m_personalBestDataSet.m_sector2_time_in_ms, 
+                    packet.m_personalBestDataSet.m_sector3_time_in_ms)
         else:
             print("No Best Time Recorded")
-        TT_data.initialized = True
+        TT_data.bestTimeInitialized = True
     # per-packet check
-    if(TT_data.bestLapTime == -1):
-        if(packet.m_personalBestDataSet.m_lap_time_in_ms > 0 and packet.m_personalBestDataSet.m_valid == 1):
+    if(TT_data.playerInitialized and TT_data.bestTimeInitialized):
+        # This happens the first time a best time happens on a circuit
+        if(TT_data.bestLapTime == -1):
+            if(packet.m_personalBestDataSet.m_lap_time_in_ms > 0 and packet.m_personalBestDataSet.m_valid == 1):
+                TT_data.bestLapTime = packet.m_playerSessionBestDataSet.m_lap_time_in_ms
+                TT_data.setBestTimeStruct(packet.m_playerSessionBestDataSet)
+                print("First Best on cirucit:" + str(TT_data.bestLapTime))
+                add_best_time(TT_data.playerName,
+                    session.track,
+                    packet.m_playerSessionBestDataSet.m_lap_time_in_ms, 
+                    packet.m_playerSessionBestDataSet.m_sector1_time_in_ms, 
+                    packet.m_playerSessionBestDataSet.m_sector2_time_in_ms, 
+                    packet.m_playerSessionBestDataSet.m_sector3_time_in_ms)
+        # This executes if a new personal best is detected and one existed
+        elif(packet.m_personalBestDataSet.m_lap_time_in_ms < TT_data.bestLapTime and packet.m_personalBestDataSet.m_lap_time_in_ms > 0 and packet.m_personalBestDataSet.m_valid == 1):
             TT_data.bestLapTime = packet.m_playerSessionBestDataSet.m_lap_time_in_ms
             TT_data.setBestTimeStruct(packet.m_playerSessionBestDataSet)
-            print("First Best on cirucit:" + str(TT_data.bestLapTime))
+            print("New Best:" + str(TT_data.bestLapTime))
             add_best_time(TT_data.playerName,
                 session.track,
                 packet.m_playerSessionBestDataSet.m_lap_time_in_ms, 
                 packet.m_playerSessionBestDataSet.m_sector1_time_in_ms, 
                 packet.m_playerSessionBestDataSet.m_sector2_time_in_ms, 
                 packet.m_playerSessionBestDataSet.m_sector3_time_in_ms)
-    elif(packet.m_personalBestDataSet.m_lap_time_in_ms < TT_data.bestLapTime and packet.m_personalBestDataSet.m_lap_time_in_ms > 0 and packet.m_personalBestDataSet.m_valid == 1):
-        TT_data.bestLapTime = packet.m_playerSessionBestDataSet.m_lap_time_in_ms
-        TT_data.setBestTimeStruct(packet.m_playerSessionBestDataSet)
-        print("New Best:" + str(TT_data.bestLapTime))
-        add_best_time(TT_data.playerName,
-            session.track,
-            packet.m_playerSessionBestDataSet.m_lap_time_in_ms, 
-            packet.m_playerSessionBestDataSet.m_sector1_time_in_ms, 
-            packet.m_playerSessionBestDataSet.m_sector2_time_in_ms, 
-            packet.m_playerSessionBestDataSet.m_sector3_time_in_ms)
 
 def n_update_participants(packet, header):
-    if(TT_data.playerIndex > -1 and TT_data.playerName == ""):
-        TT_data.playerName = packet.m_participants[TT_data.playerIndex].m_name.decode("utf-8") 
-        print("Green light " + str(TT_data.playerName) + ", GO GO GO!")
-        if(TT_data.bestLapTime > 0 and session.track != -1):
-            update_best_time_if_faster(TT_data.playerName, 
-                session.track, 
-                TT_data.bestTimeStruct.m_lap_time_in_ms,
-                TT_data.bestTimeStruct.m_sector1_time_in_ms, 
-                TT_data.bestTimeStruct.m_sector2_time_in_ms, 
-                TT_data.bestTimeStruct.m_sector3_time_in_ms
-            )
+    if(not TT_data.playerInitialized and header.m_player_car_index != -1):
+        #Initializing data
+        pName = packet.m_participants[header.m_player_car_index].m_name.decode("utf-8") 
+        TT_data.initialize(header.m_player_car_index, pName)
+        print("Initializing player " + pName+ " with ID = " + str(header.m_player_car_index))
+        TT_data.playerInitialized = True
 
 def nothing(packet, header):# Packet 8, 9, 11, 12, 13
     pass
@@ -142,13 +147,3 @@ def port_selection(dictionnary_settings, listener, PORT):
     win.bind('<KP_Enter>', lambda e: button())
     b = Button(win, text="Confirm", font=("Arial", 16), command=button)
     b.grid(row=2, column=0, pady=10)
-
-def update_title(top_label1, top_label2, screen):
-    top_label1.config(text=session.title_display())
-    top_label2.config(text=safetyCarStatusDict[session.safetyCarStatus])
-    if session.safetyCarStatus == 4:
-        top_label2.config(background="red")
-    elif session.safetyCarStatus !=0 or session.anyYellow:
-        top_label2.config(background="#FFD700")
-    else:
-        top_label2.config(background=screen.cget("background"))

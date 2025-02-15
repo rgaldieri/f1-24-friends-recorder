@@ -4,7 +4,6 @@ import pprint
 
 pp = pprint.PrettyPrinter()
 
-
 class Listener:
     def __init__(self, port=20777, adress="127.0.0.1", redirect=0, redirect_port=20777):
         self.port = port

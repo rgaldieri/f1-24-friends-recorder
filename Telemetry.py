@@ -1,21 +1,10 @@
-from ttkbootstrap import Window, Notebook, Frame, Canvas, Menu, Label
 import sys
-
-screen = Window(themename="darkly")
 
 from packet_management import *
 import json
 import time
 from dictionnaries import *
 from parser2024 import Listener
-from Custom_Frame import Players_Frame, Packet_Reception_Frame, Weather_Forecast_Frame
-
-def init_window():
-    screen.protocol("WM_DELETE_WINDOW", close_window)
-
-def close_window():
-    global running
-    running = False
 
 with open("settings.txt", "r") as f:
     dictionnary_settings = json.load(f)
@@ -23,9 +12,8 @@ with open("settings.txt", "r") as f:
 if len(sys.argv)==2:
     dictionnary_settings["port"] = int(sys.argv[1])
 
-init_window()
-
 running = True
+
 PORT = [int(dictionnary_settings["port"])]
 listener = Listener(port=PORT[0],
                     redirect=dictionnary_settings["redirect_active"],
@@ -65,8 +53,6 @@ while running:
         last_update = time.time()
         session.packet_received = packet_received[:]
         packet_received = [0]*15
-    screen.update()
-    screen.update_idletasks()
     
 listener.socket.close()
 quit()

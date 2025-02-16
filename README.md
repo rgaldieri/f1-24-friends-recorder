@@ -8,8 +8,10 @@
   - [Step 2: Create Database](#step2)
   - [Step 3: Set Database info](#step3)
   - [Step 4: Create the website](#step4)
-  - [Step 5 (Optional): Compile the app](#step5)
+  - [Step 5: Run the app](#step5)
+  - [Step 6 (Optional): Compile the app](#step6)
 - [Known Issues](#issues)
+- [Credits](#credits)
 
 ## 🔍 Summary <a id="summary"></a>
 This project contains a set of utilities to register Time Trial times from the F1 24 game on a private server, to compare it with whoever shares the same application.
@@ -39,13 +41,14 @@ In *DB_Connection.py*, add your database data.
 
 If you want to display the data in a fancy way, the repo contains a folder called webpage, which contains a PhP-based website that fetches the data from the DB and displays it. To run it, move the folder to your VPS/Server, making sure to have PhP installed and running, and set the database credentials on *db.php*.
 
-4. Run the app with command 
+### <ins>Step 5> Run the app</ins><a id="step5"></a>
+
+Run the app with command 
 ```bash
 python ./Telemetry.py
 ```
 
-5. 
-### <ins>(Optional). Compile the app and share it with other people!</ins><a id="step5"></a>
+### <ins>Step 6 (Optional). Compile the app and share it with other people!</ins><a id="step6"></a>
 
 If you prefer to have an app that runs without having to open a terminal every time, you can easily compile it by running the command
 
@@ -60,4 +63,7 @@ pyinstaller -F Telemetry.py
 * Sometimes news are not added to the DB
 * The best time is the sum of the three sectors and is a redundant info in the DB
 
+## ❤️ Credits <a id="credits"></a>
 
+* F1 Font by <a href="https://imjustcreative.com/download-f1-fonts-formula-1-fonts/2021/09/16">Smitho.graphics</a>
+* Original code from <a href="https://github.com/Fredrik2002/f1-24-telemetry-application">F1 Telemetry App</a>. Having his code reduced development time immensely, thank you so much for sharing it!

@@ -1,0 +1,266 @@
+@font-face {
+    font-family: F1_Bold;
+    src: url("fonts/Formula1-Bold.otf");
+}
+@font-face {
+    font-family: F1_Regular;
+    src: url("fonts/Formula1-Regular.otf");
+}
+@font-face {
+    font-family: F1_Wide;
+    src: url("fonts/Formula1-Wide.otf");
+}
+
+@media (min-width: 769px){
+    body {
+        background-image: url(images/curb.png), 
+        url(images/curb-right.png), 
+        linear-gradient(to bottom right, #f2e9c2 , #f7c2b0);
+        background-repeat: repeat-y;
+        background-position: left, right;
+    }
+    .left-table-column {
+        margin-top: 64px!important;
+    }
+    .site-logo img {
+        width: 550px;
+    }
+    .progress:after {
+        content: '\A';
+        position: absolute;
+        bottom: 0;
+        left: 0; 
+        width: 100%;
+    }
+    .first:after {
+        background: linear-gradient(#dfb692, #bfb562);
+        height: 100%; 
+    }
+
+    .second:after {
+        background: linear-gradient(#c4bfbf, #8285ac);
+        height: 75%; 
+    }
+
+    .third:after {
+        background: linear-gradient(#a23e3e, #db987e);
+        height: 50%; 
+    }
+
+    .medal-first {
+        width:160px;
+    }
+
+    .medal-second {
+        width:110px;
+    }
+
+    .medal-third {
+        width:80px;
+    }
+    .progress {
+        width: 150px;
+        height: 200px!important;
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 0!important;
+    }
+
+    .progress {
+        --bs-progress-bg: none!important;
+    }
+    .record-holders {
+        width: 650px;
+    }
+    .circuit-table{
+        width: 95%;
+        font-size: 14px;
+    }
+    .circuit-table th {
+        font-size: 16px;
+    }
+
+    #news {
+        position: absolute;
+        top: 120px;
+        left: 120px;
+        height: 30%;
+        width: 20%;
+    }
+}
+
+@media (max-width: 768px){
+    body {
+        background-image: linear-gradient(to bottom right, #f2e9c2 , #f7c2b0);
+    }
+    .site-logo img {
+        width: 300px;
+    }
+
+    .progress {
+        display: none!important;
+    }
+    .record-holders {
+        display: block!important;
+    }
+
+    .record-holder {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .circuit-table{
+        font-size: 10px;
+    }
+    .circuit-table th {
+        font-size: 14px;
+    }
+
+    .medal-first {
+        width:120px;
+    }
+
+    .medal-second {
+        width:95px;
+    }
+
+    .medal-third {
+        width:60px;
+    }
+}
+
+.site-logo img{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+html {    min-height: 100%;
+}
+
+th {
+    text-align: center!important;
+}
+
+table {
+    width: 100%;
+}
+
+.record-count {
+    font-size: 20px;
+    font-weight: 600;
+    font-style: italic;
+    padding-bottom: .8em;
+}
+
+.record-holders {
+    text-align: center;
+    margin-left: auto!important;
+    margin-right: auto!important;
+}
+
+.record-holder-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 8px;
+    margin-bottom: 0px;
+}
+
+.circuit-name {
+    text-align: center!important;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    display: flex;
+}
+
+.table-column {
+    padding: 24px;
+}
+
+.record-holder { 
+    flex: 0 0 auto;
+    width: 200px!important;
+}
+
+.circuit-flag-area{
+    width: 120px;
+    min-height: 80px;
+    background-color: red;
+    display: flex;
+    float:left;
+}
+
+.flag {
+    width: 64px;
+    margin: auto;
+    border: 2px solid black;
+}
+
+.circuit-name-content {
+    float:left;
+    background-color: white;
+    width: 55%;
+    min-height: 80px;
+}
+
+.country-name {
+    font-family: F1_Bold;
+    color: red;
+    text-transform: uppercase;
+    font-size: 24px;
+    margin-bottom: 0px;
+    margin-top: 6px;
+}
+
+.venue-name {
+    font-family: F1_Regular;
+    color: black;
+    text-transform: uppercase;
+    font-size: 18px;
+    margin-bottom: 0px!important;
+}
+
+.circuit-table {
+    font-family: F1_Regular;
+    text-align: center;
+}
+
+.circuit-table th {
+    font-family: F1_Bold;
+    text-transform: uppercase;
+    background-color: #b7b7b7;
+}
+
+.tr-time > td, .tr-time > th {
+  padding-bottom: 0.6em;
+  padding-top: 0.6em;
+}
+
+.tr-time > td {
+    font-weight: bold;
+}
+
+.pit-image {
+     width: 90%;
+     margin-left: -58px;
+     margin-bottom: -40px;
+}
+
+.pink {
+    color: #af39dd;
+}
+
+.world-record > td {
+    border-bottom: 2px solid black;
+}
+
+.red {
+    color: red;
+    font-weight: bold;
+}
+
+#news {
+    background-color: #ffffff88;
+    border: 1px solid red;
+    padding: 16px;
+    overflow-y:auto
+}

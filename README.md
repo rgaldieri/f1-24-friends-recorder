@@ -1,72 +1,63 @@
-# F1 24 Telemetry Application
+# F1 Shared Time Trials Apps
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
+- [Summary](#summary)
 - [Usage](#usage)
-  - [Step 1: Run the application](#step1)
-  - [Step 2: Send data to the application](#step2)
-- [Project Structure](#project-structure)
-- [To-do List](#to-do-list)
+  - [Step 1: Install the required modules](#step1)
+  - [Step 2: Create Database](#step2)
+  - [Step 3: Set Database info](#step3)
+  - [Step 4: Create the website](#step4)
+  - [Step 5 (Optional): Compile the app](#step5)
+- [Known Issues](#issues)
 
-## 🔍 Overview <a id="overview"></a>
-The goal of this project is to make the most important data from the in-game EA F1 24 telemetry system easily accessible.
+## 🔍 Summary <a id="summary"></a>
+This project contains a set of utilities to register Time Trial times from the F1 24 game on a private server, to compare it with whoever shares the same application.
 
-![Telemetry map](https://github.com/Fredrik2002/f1-23-telemetry-application/assets/86866135/7b1ce85e-f57d-4861-b7f5-10bee4ad9b11)
-
-![Telemetry 2](https://github.com/Fredrik2002/f1-23-telemetry-application/assets/86866135/3653b8ae-4604-402a-886b-45e6cf7147d5)
-
-![Telemetry 3](https://github.com/Fredrik2002/f1-23-telemetry-application/assets/86866135/ff73f7f2-b7c2-48e1-b547-4eebc37fae1c)
-
-## 🚀 Features <a id="features"></a>
-- ✅ Title bar displaying session type, laps (or time left if in qualifying), and race status (green, yellow, or red flag, SC, or VSC)
-- ✅ Main Menu tab showing different information depending on the session type (Qualifying, Race, Time Trial)
-- ✅ Fully functional mini-map displaying the track, car positions, and mini-sectors lighting up under a yellow flag
-- ✅ Damage reports (excluding engine and gearbox) for all cars in the session
-- ✅ Inner and outer tyre temperatures for all cars
-- ✅ Current, best, and last lap times, along with sector times for all cars, depending on the session type
-- ✅ ERS & Fuel management information as well as time penalties for all cars
-- ✅ Weather forecast for upcoming sessions, including track and air temperature
-- ✅ Option to choose the port for receiving data
-- ✅ Option to redirect received data to another IP address and port (to share data with a friend or another application)
-- ✅ Compatibility with older parsers for previous EA F1 games (F1 22 & F1 23)
+It is composed of 3 main elements:
+- Python code, that can be compiled in a shareable exe file
+- SQL database that can be imported in your system of choice
+- PhP Website to display your records and compare them with friends
 
 
 ## 🔧 Usage <a id="usage"></a>
-### <ins>Step 1 : Run the application</ins><a id="step1"></a>
-1. Make sure all the required python packages are installed :
+### <ins>Step 1 : Install the required modules</ins><a id="step1"></a>
+Make sure all the required python packages are installed :
 
 ```bash
-pip install tkinter ttkbootstrap PIL
+pip install pymysql pyinstaller
 ``` 
-2. Run *Telemetry.py*
+### <ins>Step 2 : Create Database</ins><a id="step2"></a>
 
-### <ins>Step 2 : Send datas to the application </ins> <a id="step2"></a>
-Open the F1 Game :
-- ➡️ Go to Settings 
-- ➡️ Telemetry Settings
-- ➡️ Make sure the port in-game matches the port used by the application (20777 by default)
-- ➡️ **If your game is connected to the same network as your computer running this application**, the easiest way is to enable the <u>UDP Broadcast</u> setting.
-**If not**, you have to enter your public IP address in the <u>IP Address</u> setting.
-- ✅ You are then good to go !
+Use the racing_db.sql file to import the database structure to your manager. It contains the basic DB structure and all circuits available to F1 24.
 
+### <ins>Step 3: Set Database info</ins><a id="step3"></a>
 
-## 📘 Project structure <a id="project-structure"></a>
-* utils :
-    * *sender.py* : Sends sample data to a given port and IP address.
-    * draw.py : If you run this file before the beginning of a lap, it will 'draw' the track by saving all of player's car's positions within the given file (that's how the mini-maps are created)
-    * *receiver.py* : Stores packets received in a list, and stores the list in a file. 10min of recording ≈ 100 MB of data, so be careful !
-    * *server.py* Receives datas from different ports and redirects it to specific IP addresses
-* __*Telemetry.py* : Main application you need to run__
-* *Player.py* & *Session.py* : Classes to represent a player and a session
-* *packet_management.py* : Stores the different packets information into various players and session instances
-* *dictionnaries.py* : This is where all the different dictionnaries are stored
-* *Custom_Frame.py* : This is where the main frame is created
-* *parser202x.py* : Parses the data received for the F1 2x game (default for F1 24)
-* *settings.txt* : This files saves the previous connection settings (so you don't have to enter the same port selection and UDP redirection every time). Do not touch unless you know what you are doing
+In *DB_Connection.py*, add your database data.
 
-## ✏️ To-do list <a id="to-do-list"></a>
-* Fix the issue with weather Forecast Sample in 100% (Too many samples ?)
-* Improve the overall appearance of the app (flag apparition, title)
+### <ins>Step 4: Create the website</ins><a id="step4"></a>
+
+If you want to display the data in a fancy way, the repo contains a folder called webpage, which contains a PhP-based website that fetches the data from the DB and displays it. To run it, move the folder to your VPS/Server, making sure to have PhP installed and running, and set the database credentials on *db.php*.
+
+4. Run the app with command 
+```bash
+python ./Telemetry.py
+```
+
+5. 
+### <ins>(Optional). Compile the app and share it with other people!</ins><a id="step5"></a>
+
+If you prefer to have an app that runs without having to open a terminal every time, you can easily compile it by running the command
+
+```bash
+pyinstaller -F Telemetry.py
+```
+
+## Known Issues <a id="issues"></a>
+* Times cannot be imported in block. Players need to open every single track with the Telemetry app open to register them
+* No way to automatically parse world records
+* The app runs on a terminal, and is covered during gameplay
+* Sometimes news are not added to the DB
+* The best time is the sum of the three sectors and is a redundant info in the DB
+
 
